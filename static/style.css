@@ -1,0 +1,105 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#app-container {
+    display: flex;
+    height: 100%;
+}
+
+#folders-pane {
+    width: 20%;
+    min-width: 200px;
+    border-right: 1px solid #ccc;
+    overflow-y: auto;
+}
+
+#right-container {
+    display: flex;
+    flex-direction: column;
+    width: 80%;
+}
+
+#emails-pane {
+    height: 40%;
+    border-bottom: 1px solid #ccc;
+    overflow-y: auto;
+}
+
+#content-pane {
+    height: 60%;
+    padding: 0;
+}
+
+.pane {
+    padding: 10px;
+}
+
+h2 {
+    margin-top: 0;
+    font-size: 1.2em;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+#folder-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#folder-list li {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+#folder-list li:hover {
+    background-color: #f0f0f0;
+}
+
+#folder-list li.selected {
+    background-color: #007bff;
+    color: white;
+}
+
+#email-list {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#email-list th, #email-list td {
+    text-align: left;
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+#email-list tbody tr {
+    cursor: pointer;
+}
+
+#email-list tbody tr:hover {
+    background-color: #f0f0f0;
+}
+
+#email-list tbody tr.selected {
+    background-color: #007bff;
+    color: white;
+}
+
+#email-content {
+    height: 100%;
+    overflow: auto; /* allow scrolling for plain text content by default */
+}
+
+/* Make the table header sticky so it remains visible while scrolling */
+#email-list thead th {
+    position: sticky;
+    top: 0;
+    background: #fff; /* ensure header has a background */
+    z-index: 2;
+}
