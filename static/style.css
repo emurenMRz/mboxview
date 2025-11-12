@@ -12,27 +12,66 @@ body, html {
 }
 
 #folders-pane {
-    width: 20%;
+    /* Make folder pane a fixed flex basis with sensible min/max so it stays
+       between 200px and 300px while allowing the right container to adapt. */
+    flex: 0 0 250px; /* preferred width */
     min-width: 200px;
+    max-width: 300px;
     border-right: 1px solid #ccc;
     overflow-y: auto;
+    box-sizing: border-box; /* ensure width includes padding to avoid layout shift when resizing */
 }
 
 #right-container {
+    /* Take the remaining horizontal space */
     display: flex;
     flex-direction: column;
-    width: 80%;
+    flex: 1 1 auto;
+}
+
+/* Resizer bar between left and right panes */
+#pane-resizer {
+    flex: 0 0 8px;
+    width: 8px;
+    cursor: col-resize;
+    background: transparent;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    touch-action: none; /* prevent the browser from handling touch gestures while dragging */
+}
+#pane-resizer:hover {
+    background: rgba(0,0,0,0.04);
 }
 
 #emails-pane {
-    height: 40%;
+    /* Make the emails pane initially take 40% of the vertical space but
+       allow resizing (flex-basis). Use pixel min/max to avoid collapsing. */
+    flex: 0 0 40%;
+    min-height: 120px;
+    max-height: calc(100% - 120px);
     border-bottom: 1px solid #ccc;
     overflow-y: auto;
+    box-sizing: border-box; /* ensure width includes padding to avoid layout shift when resizing */
+}
+
+#vertical-resizer {
+    height: 8px;
+    flex: 0 0 8px;
+    cursor: row-resize;
+    background: transparent;
+    user-select: none;
+    touch-action: none;
+}
+#vertical-resizer:hover {
+    background: rgba(0,0,0,0.04);
 }
 
 #content-pane {
-    height: 60%;
+    /* Content pane takes remaining vertical space */
+    flex: 1 1 auto;
     padding: 0;
+    overflow: hidden;
 }
 
 .pane {

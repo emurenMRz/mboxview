@@ -11,6 +11,8 @@
         <div id="folders-pane" class="pane">
             <ul id="folder-list"></ul>
         </div>
+        <!-- Resizer between folders pane and right container -->
+        <div id="pane-resizer" aria-hidden="true"></div>
         <div id="right-container">
             <div id="emails-pane" class="pane">
                 <table id="email-list">
@@ -24,6 +26,8 @@
                     <tbody></tbody>
                 </table>
             </div>
+            <!-- Vertical resizer between email list and content pane -->
+            <div id="vertical-resizer" aria-hidden="true"></div>
             <div id="content-pane" class="pane">
                 <div id="email-content">
                     <p>Select an email to view its content.</p>
