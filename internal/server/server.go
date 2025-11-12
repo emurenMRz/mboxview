@@ -14,7 +14,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"sort"
 	"strconv"
+	"time"
 
 	"github.com/emersion/go-imap/utf7"
 	"github.com/emersion/go-mbox"
@@ -27,6 +29,8 @@ type Email struct {
 	From    string `json:"from"`
 	Date    string `json:"date"`
 	Subject string `json:"subject"`
+	// Timestamp is parsed Date used for sorting. Not exported to JSON.
+	Timestamp time.Time `json:"-"`
 }
 
 type EmailContent struct {
@@ -149,14 +153,35 @@ func listEmailsHandler(w http.ResponseWriter, r *http.Request, mailboxName strin
 
 		decodedFrom := decodeAddressList(header.Get("From"), decoder)
 
+		// parse Date header into time for sorting
+		dateStr := header.Get("Date")
+		ts := parseDate(dateStr)
+
 		emails = append(emails, Email{
-			ID:      i,
-			From:    decodedFrom,
-			Date:    header.Get("Date"),
-			Subject: decodedSubject,
+			ID:        i,
+			From:      decodedFrom,
+			Date:      dateStr,
+			Subject:   decodedSubject,
+			Timestamp: ts,
 		})
 		i++
 	}
+
+	// sort by Timestamp descending (newest first). Zero timestamps go last.
+	sort.SliceStable(emails, func(a, b int) bool {
+		ta := emails[a].Timestamp
+		tb := emails[b].Timestamp
+		if ta.Equal(tb) {
+			return emails[a].ID < emails[b].ID
+		}
+		if ta.IsZero() {
+			return false
+		}
+		if tb.IsZero() {
+			return true
+		}
+		return ta.After(tb)
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(emails)
@@ -299,6 +324,32 @@ func parseMessageBody(msg *mail.Message) EmailContent {
 
 	processEntity(msg.Header, msg.Body)
 	return content
+}
+
+// parseDate tries to parse common email Date header formats and returns a time.Time.
+// If parsing fails, it returns zero time.
+func parseDate(dateStr string) time.Time {
+	if dateStr == "" {
+		return time.Time{}
+	}
+	if t, err := mail.ParseDate(dateStr); err == nil {
+		return t
+	}
+	// common fallbacks
+	layouts := []string{
+		time.RFC1123Z,
+		time.RFC1123,
+		time.RFC822Z,
+		time.RFC822,
+		time.RFC850,
+		time.RFC3339,
+	}
+	for _, l := range layouts {
+		if t, err := time.Parse(l, dateStr); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
 }
 
 func charsetReader(charset string, input io.Reader) (io.Reader, error) {
