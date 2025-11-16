@@ -29,6 +29,7 @@ type Email struct {
 	From    string `json:"from"`
 	Date    string `json:"date"`
 	Subject string `json:"subject"`
+	Status  string `json:"status"`
 	// Timestamp is parsed Date used for sorting. Not exported to JSON.
 	Timestamp time.Time `json:"-"`
 }
@@ -157,11 +158,18 @@ func listEmailsHandler(w http.ResponseWriter, r *http.Request, mailboxName strin
 		dateStr := header.Get("Date")
 		ts := parseDate(dateStr)
 
+		status := header.Get("Status")
+		if status == "" {
+			// ヘッダが無い場合は新着扱い
+			status = "N"
+		}
+
 		emails = append(emails, Email{
 			ID:        i,
 			From:      decodedFrom,
 			Date:      dateStr,
 			Subject:   decodedSubject,
+			Status:    status,
 			Timestamp: ts,
 		})
 		i++

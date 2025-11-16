@@ -130,6 +130,10 @@ h2 {
     color: white;
 }
 
+.new-mail-row {
+    font-weight: bold;
+}
+
 #email-content {
     height: 100%;
     overflow: auto; /* allow scrolling for plain text content by default */

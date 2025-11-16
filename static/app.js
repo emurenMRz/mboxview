@@ -84,6 +84,9 @@ document.addEventListener('DOMContentLoaded', () => {
             emails.forEach(email => {
                 const row = document.createElement('tr');
                 row.dataset.emailId = email.id;
+                // 新着メール（StatusにNまたはUが含まれる）は太字
+                if (email.status.includes('N') || email.status.includes('U'))
+                    row.classList.add('new-mail-row');
 
                 const dateCell = document.createElement('td');
                 dateCell.textContent = new Date(email.date).toLocaleString();
