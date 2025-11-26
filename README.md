@@ -15,7 +15,7 @@
 
 ## インストール / ビルド
 
-```powershell
+```sh
 # 依存を取得（オプション）
 go mod download
 
@@ -25,9 +25,9 @@ go build ./...
 
 ## 使い方（起動）
 
-```powershell
+```sh
 # mbox ファイルが置かれたディレクトリを --path で指定して起動
-go run main.go --path /path/to/mboxdir
+go run ./cmd/mboxviewd --path /path/to/mboxdir
 ```
 
 デフォルトで :8080 をリッスンします。ブラウザで http://localhost:8080/ を開くと `static/index.html` が表示されます。
@@ -48,7 +48,7 @@ go run main.go --path /path/to/mboxdir
 
 サンプル（curl）:
 
-```bash
+```sh
 curl -s http://localhost:8080/api/mailboxes | jq .
 curl -s http://localhost:8080/api/mailboxes/INBOX/emails | jq .
 curl -s http://localhost:8080/api/mailboxes/INBOX/emails/0 | jq .
@@ -62,6 +62,35 @@ curl -s http://localhost:8080/api/mailboxes/INBOX/emails/0 | jq .
 - これらのファイルはバージョン管理されています。変更した場合はコミットしてプッシュしてください。
 - サーバは `.css` と `.js` の MIME タイプを明示的に設定しますが、CI/CD やリバースプロキシが `Content-Type` を上書きする場合は配信側の設定も確認してください。
 - ブラウザのキャッシュやプロキシのキャッシュが古いアセットを返すことがあるので、デプロイ後はキャッシュクリアやバージョニングを検討してください。
+
+## mboxappend コマンド
+
+`./cmd/mboxappend` は標準入力からメールデータを受け取り、指定した mbox ファイルへ追記するユーティリティです。  
+このツールは、スクリプトやパイプラインからのメール保存に便利です。
+
+**使い方**
+
+```sh
+# 例: mail.txt の内容を mymail.mbox に追記
+cat mail.txt | /usr/local/bin/mboxappend mymail.mbox
+```
+
+- 第1引数に対象の mbox ファイルパスを指定します。
+- 標準入力から受け取ったデータは、`From ` 行が本文中に現れた場合は `>` でエスケープされて安全に追記されます。
+- 追記後、末尾に空行が自動で追加されます。
+
+このツールはスクリプトやパイプラインからのメール保存に便利です。
+
+### .forward ファイルでの使用方法
+
+メールを受信した際、`.forward` ファイルを使ってメールを mbox ファイルに追記する場合、以下のように記述します。
+
+```
+# .forward ファイルの例
+"|/usr/local/bin/mboxappend /var/mail/user.mbox"
+```
+
+上記のように記述することで、受信したメールが `/var/mail/user.mbox` ファイルに追記されます。
 
 ## ライセンス
 
