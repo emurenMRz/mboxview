@@ -1,4 +1,4 @@
-module mboxviewd
+module github.com/emurenMRz/mboxview
 
 go 1.25.3
 

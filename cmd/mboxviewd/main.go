@@ -4,7 +4,7 @@ import (
 	"flag"
 	"log"
 
-	"mboxviewd/internal/server"
+	"github.com/emurenMRz/mboxview/internal/server"
 )
 
 func main() {
