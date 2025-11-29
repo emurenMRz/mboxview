@@ -62,7 +62,7 @@ func parseMessageBody(msg *mail.Message) EmailContent {
 			// 7bit, 8bit, binary -> no wrapper
 		}
 
-		if content.Body == "" && (ctype == "text/plain" || ctype == "text/html") {
+		if ctype == "text/plain" || ctype == "text/html" {
 			bodyBytes, err := io.ReadAll(reader)
 			if err != nil {
 				return
@@ -78,13 +78,33 @@ func parseMessageBody(msg *mail.Message) EmailContent {
 				encoding, _ = ianaindex.IANA.Encoding("utf-8")
 			}
 
-			decodedBody, err := encoding.NewDecoder().Bytes(bodyBytes)
+			var decodedBody []byte
 			if err != nil {
-				content.Body = string(bodyBytes)
+				decodedBody = bodyBytes
 			} else {
-				content.Body = string(decodedBody)
+				decodedBody, _ = encoding.NewDecoder().Bytes(bodyBytes)
 			}
-			content.BodyType = ctype
+
+			// Store in appropriate field
+			switch ctype {
+			case "text/html":
+				if content.BodyHTML == "" {
+					content.BodyHTML = string(decodedBody)
+				}
+				content.BodyType = "text/html"
+			case "text/plain":
+				if content.BodyText == "" {
+					content.BodyText = string(decodedBody)
+				}
+				content.BodyType = "text/plain"
+			}
+
+			// Track if both text and HTML are available
+			if content.BodyText != "" && content.BodyHTML != "" {
+				content.HasAlternate = true
+				// Prefer PlainText for primary display
+				content.BodyType = "text/plain"
+			}
 		}
 	}
 
