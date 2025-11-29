@@ -49,7 +49,7 @@ func splitHeadersFromBody(s string) (string, string) {
 	return s, ""
 }
 
-func updateStatusHeader(headers string, newStatus string) string {
+func updateStatusHeader(headers string, newStatus string) (string, bool) {
 	statusStart := strings.Index(headers, "Status: ")
 	if statusStart != -1 {
 		statusEnd := strings.Index(headers[statusStart:], "\n")
@@ -58,12 +58,16 @@ func updateStatusHeader(headers string, newStatus string) string {
 		} else {
 			statusEnd = len(headers)
 		}
-		return headers[:statusStart] + "Status: " + newStatus + "\n" + headers[statusEnd:]
+		nowStatus := strings.TrimSpace(headers[statusStart+len("Status: ") : statusEnd])
+		if newStatus == nowStatus {
+			return headers, false
+		}
+		return headers[:statusStart] + "Status: " + newStatus + "\n" + headers[statusEnd:], true
 	}
 
 	if headers[len(headers)-1] != '\n' {
 		headers += "\n"
 	}
 
-	return headers + "Status: " + newStatus + "\n"
+	return headers + "Status: " + newStatus + "\n", true
 }

@@ -50,7 +50,12 @@ func markEmailReadHandler(w http.ResponseWriter, r *http.Request, mailboxName st
 	// Find header part (before body)
 	headers, body := splitHeadersFromBody(rest)
 	// Update status header
-	newHeaders := updateStatusHeader(headers, "RO")
+	newHeaders, updated := updateStatusHeader(headers, "RO")
+	if !updated {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	// Reconstruct the message
 	messages[emailId] = envelopeLine + "\n" + newHeaders + "\n" + body
 
