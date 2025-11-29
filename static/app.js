@@ -5,7 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentMailbox = null;
 
-    async function loadEmailContent(mailboxName, emailId) {
+    async function loadEmail(mailboxName, emailId) {
+        // Load email content when an email is selected
         emailContent.innerHTML = '<p>Loading content...</p>';
         try {
             const response = await fetch(`/api/mailboxes/${encodeURIComponent(mailboxName)}/emails/${emailId}`);
@@ -65,6 +66,29 @@ document.addEventListener('DOMContentLoaded', () => {
             emailContent.innerHTML = '<p>Error loading email content.</p>';
         }
     }
+    
+    async function markEmailAsRead(mailboxName, emailId) {
+        try {
+            const response = await fetch(`/api/mailboxes/${encodeURIComponent(mailboxName)}/emails/${emailId}/read`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            // Update UI for the specific email row only
+            const row = document.querySelector('tr[data-email-id="' + emailId + '"]');
+            if (row) {
+                row.classList.remove('new-mail-row');
+                // Optionally update status data attribute if needed
+                // row.dataset.status = 'R';
+            }
+        } catch (error) {
+            console.error(`Failed to mark email ${emailId} as read:`, error);
+        }
+    }
 
     async function loadEmails(mailboxName) {
         emailListBody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
@@ -101,10 +125,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.appendChild(fromCell);
                 row.appendChild(subjectCell);
 
+                const mailbox = mailboxName;
+                const emailId = email.id;
                 row.addEventListener('click', () => {
-                    loadEmailContent(mailboxName, email.id);
-                    document.querySelectorAll('#email-list tbody tr').forEach(item => item.classList.remove('selected'));
-                    row.classList.add('selected');
+                    loadEmail(mailbox, emailId);
+                    // Mark email as read when clicked
+                    markEmailAsRead(mailbox, emailId);
+                });
+                
+                // Also mark as read when double-clicked
+                row.addEventListener('dblclick', () => {
+                    markEmailAsRead(mailbox, emailId);
                 });
 
                 emailListBody.appendChild(row);

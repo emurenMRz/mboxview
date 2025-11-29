@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bufio"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -68,20 +69,147 @@ func ListenAndServe(addr string) error {
 }
 
 func handleMailboxRoutes(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/mailboxes/"), "/")
+	log.Println(r.Method + " " + r.URL.Path)
 
-	if len(parts) == 2 && parts[1] == "emails" {
-		listEmailsHandler(w, r, parts[0])
-	} else if len(parts) == 3 && parts[1] == "emails" {
-		emailContentHandler(w, r, parts[0], parts[2])
-	} else if len(parts) == 1 {
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/mailboxes/"), "/")
+	segmentCount := len(parts)
+
+	if segmentCount == 1 {
 		mailboxesHandler(w, r)
-	} else {
-		http.NotFound(w, r)
+		return
 	}
+
+	if parts[1] == "emails" {
+		mboxName := parts[0]
+		switch segmentCount {
+		case 2:
+			listEmailsHandler(w, r, mboxName)
+		case 3:
+			emailContentHandler(w, r, mboxName, parts[2])
+		case 4:
+			if r.Method == "POST" && parts[3] == "read" {
+				markEmailReadHandler(w, r, mboxName, parts[2])
+			}
+		}
+		return
+	}
+
+	http.NotFound(w, r)
 }
 
-func mailboxesHandler(w http.ResponseWriter, r *http.Request) {
+func markEmailReadHandler(w http.ResponseWriter, r *http.Request, mailboxName string, emailIdStr string) {
+	// mailboxName coming from API is UTF-8; encode to IMAP-UTF7 to find file on disk
+	encodedMailboxName, err := utf7.Encoding.NewEncoder().String(mailboxName)
+	if err != nil {
+		http.Error(w, "Invalid mailbox name", http.StatusBadRequest)
+		return
+	}
+	mboxPath := filepath.Join(basePath, encodedMailboxName)
+
+	// String of mail id to integer
+	emailId, err := strconv.Atoi(emailIdStr)
+	if err != nil {
+		http.Error(w, "Invalid email ID", http.StatusBadRequest)
+		return
+	}
+
+	// Read the mbox file and parse messages
+	messages, ok := readMessages(mboxPath, w, r)
+	if !ok {
+		return
+	}
+
+	if emailId < 0 || emailId >= len(messages) {
+		http.Error(w, "Invalid email ID", http.StatusBadRequest)
+		return
+	}
+
+	// Update the target message
+	targetMsgStr := messages[emailId]
+	// Split envelope line from the rest
+	envelopeLine, rest := splitAtFirstNewline(targetMsgStr)
+	// Find header part (before body)
+	headers, body := splitHeadersFromBody(rest)
+	// Update status header
+	newHeaders := updateStatusHeader(headers, "RO")
+	// Reconstruct the message
+	messages[emailId] = envelopeLine + "\n" + newHeaders + "\n" + body
+
+	// Now rewrite the mbox file with the updated messages
+	tempFile, err := os.CreateTemp(basePath, "mboxview-update-*.mbox")
+	if err != nil {
+		log.Printf("Error creating temp file: %v", err)
+		http.Error(w, "Error updating mbox", http.StatusInternalServerError)
+		return
+	}
+	defer os.Remove(tempFile.Name())
+	defer tempFile.Close()
+
+	// Write each message to the temp file directly
+	for _, msgStr := range messages {
+		_, err := tempFile.WriteString(msgStr)
+		if err != nil {
+			log.Printf("Error writing message to temp file: %v", err)
+			http.Error(w, "Error updating mbox", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Close the temp file to flush
+	if err := tempFile.Close(); err != nil {
+		log.Printf("Error closing temp file: %v", err)
+		http.Error(w, "Error updating mbox", http.StatusInternalServerError)
+		return
+	}
+
+	// Atomically replace the original file
+	if err := os.Rename(filepath.Clean(tempFile.Name()), mboxPath); err != nil {
+		log.Printf("Error replacing original file: %v", err)
+		http.Error(w, "Error updating mbox", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// readMessages reads all messages from an mbox file and returns them as a slice of strings.
+// It opens the file in read-only mode.
+func readMessages(mboxPath string, w http.ResponseWriter, r *http.Request) ([]string, bool) {
+	f, err := os.Open(mboxPath)
+	if err != nil {
+		http.NotFound(w, r)
+		return nil, false
+	}
+	defer f.Close()
+
+	// Read all messages to find the one we want to update
+	var messages []string
+	scanner := bufio.NewScanner(f)
+	var currentMessage strings.Builder
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "From ") {
+			// End of previous message
+			if currentMessage.Len() > 0 {
+				messages = append(messages, currentMessage.String())
+				currentMessage.Reset()
+			}
+			// Start of new message
+			currentMessage.WriteString(line)
+			currentMessage.WriteString("\n")
+		} else {
+			currentMessage.WriteString(line)
+			currentMessage.WriteString("\n")
+		}
+	}
+	// Add the last message
+	if currentMessage.Len() > 0 {
+		messages = append(messages, currentMessage.String())
+	}
+	return messages, true
+}
+
+func mailboxesHandler(w http.ResponseWriter, _ *http.Request) {
 	files, err := os.ReadDir(basePath)
 	if err != nil {
 		http.Error(w, "Failed to read directory", http.StatusInternalServerError)
@@ -369,6 +497,44 @@ func charsetReader(charset string, input io.Reader) (io.Reader, error) {
 		return input, nil
 	}
 	return transform.NewReader(input, enc.NewDecoder()), nil
+}
+
+func splitAtFirstNewline(s string) (string, string) {
+	if i := strings.Index(s, "\n"); i != -1 {
+		return s[:i], s[i+1:]
+	}
+	return s, ""
+}
+
+func splitHeadersFromBody(s string) (string, string) {
+	// Find the first empty line that separates headers from body
+	if i := strings.Index(s, "\n\n"); i != -1 {
+		return s[:i+1], s[i+2:]
+	}
+	return s, ""
+}
+
+func updateStatusHeader(headers string, newStatus string) string {
+	// Find existing Status header
+	statusStart := strings.Index(headers, "Status: ")
+	if statusStart != -1 {
+		// Find end of this line
+		statusEnd := strings.Index(headers[statusStart:], "\n")
+		if statusEnd != -1 {
+			statusEnd += statusStart
+		} else {
+			statusEnd = len(headers)
+		}
+		// Replace the line
+		return headers[:statusStart] + "Status: " + newStatus + "\n" + headers[statusEnd:]
+	}
+
+	// No newline, just append
+	if headers[len(headers)-1] != '\n' {
+		headers += "\n"
+	}
+
+	return headers + "Status: " + newStatus + "\n"
 }
 
 func decodeAddressList(header string, decoder *mime.WordDecoder) string {
