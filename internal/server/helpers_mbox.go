@@ -22,17 +22,12 @@ func readMessages(mboxPath string, w http.ResponseWriter, r *http.Request) ([]st
 	var currentMessage strings.Builder
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, "From ") {
-			if currentMessage.Len() > 0 {
-				messages = append(messages, currentMessage.String())
-				currentMessage.Reset()
-			}
-			currentMessage.WriteString(line)
-			currentMessage.WriteString("\n")
-		} else {
-			currentMessage.WriteString(line)
-			currentMessage.WriteString("\n")
+		if strings.HasPrefix(line, "From ") && currentMessage.Len() > 0 {
+			messages = append(messages, currentMessage.String())
+			currentMessage.Reset()
 		}
+		currentMessage.WriteString(line)
+		currentMessage.WriteString("\n")
 	}
 	if currentMessage.Len() > 0 {
 		messages = append(messages, currentMessage.String())
