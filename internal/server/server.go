@@ -42,6 +42,7 @@ type EmailContent struct {
 }
 
 var basePath string
+var editMode bool
 
 // RegisterHandlers registers HTTP handlers for the server. Call this before ListenAndServe.
 func RegisterHandlers(path string) {
@@ -68,8 +69,19 @@ func ListenAndServe(addr string) error {
 	return http.ListenAndServe(addr, nil)
 }
 
+// SetEditMode enables or disables edit mode for the server.
+func SetEditMode(v bool) {
+	editMode = v
+}
+
 func handleMailboxRoutes(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.Method + " " + r.URL.Path)
+
+	// Guard POST methods for edit mode
+	if r.Method == "POST" && !editMode {
+		http.NotFound(w, r)
+		return
+	}
 
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/mailboxes/"), "/")
 	segmentCount := len(parts)
