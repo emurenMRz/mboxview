@@ -1,0 +1,74 @@
+package server
+
+import (
+	"bufio"
+	"net/http"
+	"os"
+	"strings"
+)
+
+// readMessages reads all messages from an mbox file and returns them as a slice of strings.
+// It opens the file in read-only mode.
+func readMessages(mboxPath string, w http.ResponseWriter, r *http.Request) ([]string, bool) {
+	f, err := os.Open(mboxPath)
+	if err != nil {
+		http.NotFound(w, r)
+		return nil, false
+	}
+	defer f.Close()
+
+	var messages []string
+	scanner := bufio.NewScanner(f)
+	var currentMessage strings.Builder
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "From ") {
+			if currentMessage.Len() > 0 {
+				messages = append(messages, currentMessage.String())
+				currentMessage.Reset()
+			}
+			currentMessage.WriteString(line)
+			currentMessage.WriteString("\n")
+		} else {
+			currentMessage.WriteString(line)
+			currentMessage.WriteString("\n")
+		}
+	}
+	if currentMessage.Len() > 0 {
+		messages = append(messages, currentMessage.String())
+	}
+	return messages, true
+}
+
+func splitAtFirstNewline(s string) (string, string) {
+	if i := strings.Index(s, "\n"); i != -1 {
+		return s[:i], s[i+1:]
+	}
+	return s, ""
+}
+
+func splitHeadersFromBody(s string) (string, string) {
+	if i := strings.Index(s, "\n\n"); i != -1 {
+		return s[:i+1], s[i+2:]
+	}
+	return s, ""
+}
+
+func updateStatusHeader(headers string, newStatus string) string {
+	statusStart := strings.Index(headers, "Status: ")
+	if statusStart != -1 {
+		statusEnd := strings.Index(headers[statusStart:], "\n")
+		if statusEnd != -1 {
+			statusEnd += statusStart
+		} else {
+			statusEnd = len(headers)
+		}
+		return headers[:statusStart] + "Status: " + newStatus + "\n" + headers[statusEnd:]
+	}
+
+	if headers[len(headers)-1] != '\n' {
+		headers += "\n"
+	}
+
+	return headers + "Status: " + newStatus + "\n"
+}
