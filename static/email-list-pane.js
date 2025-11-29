@@ -12,6 +12,11 @@ async function loadEmails(emailListBody, mailboxName, onEmailSelected) {
         }
         const emails = await response.json();
 
+        // Clear existing selected state
+        document.querySelectorAll('#email-list tbody tr.selected').forEach(row => {
+            row.classList.remove('selected');
+        });
+
         emailListBody.innerHTML = ''; // Clear loading message
         if (!emails || emails.length === 0) {
             emailListBody.innerHTML = '<tr><td colspan="3">No emails in this mailbox.</td></tr>';
@@ -39,6 +44,12 @@ async function loadEmails(emailListBody, mailboxName, onEmailSelected) {
             row.appendChild(subjectCell);
 
             row.addEventListener('click', () => {
+                // Clear selection from all rows
+                document.querySelectorAll('#email-list tbody tr').forEach(r => {
+                    r.classList.remove('selected');
+                });
+                // Mark clicked row as selected
+                row.classList.add('selected');
                 onEmailSelected(mailboxName, email.id);
             });
             
