@@ -92,6 +92,17 @@ cat mail.txt | /usr/local/bin/mboxappend mymail.mbox
 
 上記のように記述することで、受信したメールが `/var/mail/user.mbox` ファイルに追記されます。
 
+## インストールスクリプト
+
+`script/install-mboxviewd.sh` は、mboxviewd と mboxappend のバイナリをシステムにインストールし、mboxviewd をサービスとして起動するためのスクリプトです。
+
+- `mboxviewd` と `mboxappend` の実行ファイルを `/usr/local/bin/` にコピーします。
+- `static` ディレクトリを `/usr/local/share/mboxviewd/static` にコピーします。
+- `/usr/local/etc/rc.d/mboxviewd` に FreeBSD の rc.d スクリプトを生成し、サービスを有効化・起動します。
+- `/etc/rc.conf` にデフォルトの設定を追記します。
+
+このスクリプトを使用することで、mboxviewd を簡単にシステム全体で利用可能にできます。
+
 ## ライセンス
 
 MIT License
