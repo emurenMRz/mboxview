@@ -8,17 +8,19 @@ import (
 )
 
 func main() {
-	var path string
-	flag.StringVar(&path, "path", ".", "path to mbox files")
+	var mboxDir, staticDir, port string
+	flag.StringVar(&mboxDir, "mbox-dir", "mail", "path to mbox files")
+	flag.StringVar(&staticDir, "static-dir", "static", "path to static files")
+	flag.StringVar(&port, "port", "8080", "port to listen on")
 	var edit bool
 	flag.BoolVar(&edit, "edit", false, "enable edit mode")
 	flag.Parse()
 
-	server.RegisterHandlers(path)
+	server.RegisterHandlers(mboxDir, staticDir)
 	server.SetEditMode(edit)
 
-	log.Println("Listening on :8080...")
-	if err := server.ListenAndServe(":8080"); err != nil {
+	log.Println("Listening on", port)
+	if err := server.ListenAndServe(":" + port); err != nil {
 		log.Fatal(err)
 	}
 }
