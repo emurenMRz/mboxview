@@ -32,6 +32,7 @@ func main() {
 			_, err := f.WriteString(line + "\n")
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "write error: %v\n", err)
+				f.Close()
 				os.Exit(75)
 			}
 			if line == "" {
@@ -48,16 +49,19 @@ func main() {
 		_, err := f.WriteString(line + "\n")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "write error: %v\n", err)
+			f.Close()
 			os.Exit(75)
 		}
 	}
 	if err := scanner.Err(); err != nil {
 		fmt.Fprintf(os.Stderr, "read error: %v\n", err)
+		f.Close()
 		os.Exit(75)
 	}
 
 	// メッセージ末尾に空行を追加
 	f.WriteString("\n")
 
+	f.Close()
 	os.Exit(0) // EX_OK
 }
