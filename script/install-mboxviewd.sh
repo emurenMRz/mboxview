@@ -41,7 +41,7 @@ command="/usr/local/bin/mboxviewd"
 load_rc_config $name
 
 : ${mboxviewd_user:="root"}
-: ${mboxviewd_pidfile:="/var/run/mboxviewd.pid"}
+: ${mboxviewd_pidfile:="/var/run/mboxviewd/mboxviewd.pid"}
 : ${mboxviewd_static_dir:="/usr/local/share/mboxviewd/static"}
 
 # デフォルトフラグ（rc.conf で上書き可）
@@ -92,7 +92,7 @@ RC_CONF="/etc/rc.conf"
 {
     grep -q '^mboxviewd_enable=' "$RC_CONF" || echo 'mboxviewd_enable="YES"'
     grep -q '^mboxviewd_mbox_dir=' "$RC_CONF" || echo 'mboxviewd_mbox_dir="/usr/local/share/mail"'
-    grep -q '^mboxviewd_log_file=' "$RC_CONF" || echo 'mboxviewd_log_file="/var/log/mboxviewd.log"'
+    grep -q '^mboxviewd_log_file=' "$RC_CONF" || echo 'mboxviewd_log_file="/var/log/mboxviewd/mboxviewd.log"'
     grep -q '^mboxviewd_port=' "$RC_CONF" || echo 'mboxviewd_port="8080"'
     grep -q '^mboxviewd_edit=' "$RC_CONF" || echo 'mboxviewd_edit="NO"'
 } >> "$RC_CONF"
