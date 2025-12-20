@@ -43,6 +43,18 @@ async function loadEmails(emailListBody, mailboxName, onEmailSelected) {
             row.appendChild(fromCell);
             row.appendChild(subjectCell);
 
+            // Add delete button
+            const deleteCell = document.createElement('td');
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = '✖';
+            deleteButton.className = 'delete-email';
+            deleteButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent row click
+                deleteEmail(mailboxName, email.id, row);
+            });
+            deleteCell.appendChild(deleteButton);
+            row.appendChild(deleteCell);
+
             row.addEventListener('click', () => {
                 // Clear selection from all rows
                 document.querySelectorAll('#email-list tbody tr').forEach(r => {
@@ -85,5 +97,24 @@ async function markEmailAsRead(mailboxName, emailId) {
         }
     } catch (error) {
         console.error(`Failed to mark email ${emailId} as read:`, error);
+    }
+}
+
+async function deleteEmail(mailboxName, emailId, rowElement) {
+    if (!confirm('本当にこのメールを削除しますか？')) {
+        return;
+    }
+    try {
+        const response = await fetch(`/api/mailboxes/${encodeURIComponent(mailboxName)}/emails/${emailId}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        // Remove the row from UI
+        rowElement.remove();
+    } catch (error) {
+        console.error(`Failed to delete email ${emailId}:`, error);
+        alert('メールの削除に失敗しました。');
     }
 }

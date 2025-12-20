@@ -29,7 +29,11 @@ func handleMailboxRoutes(w http.ResponseWriter, r *http.Request) {
 		case 2:
 			listEmailsHandler(w, r, mboxName)
 		case 3:
-			emailContentHandler(w, r, mboxName, parts[2])
+			if r.Method == "DELETE" {
+				deleteEmailHandler(w, r, mboxName, parts[2])
+			} else {
+				emailContentHandler(w, r, mboxName, parts[2])
+			}
 		case 4:
 			if r.Method == "POST" && parts[3] == "read" {
 				markEmailReadHandler(w, r, mboxName, parts[2])

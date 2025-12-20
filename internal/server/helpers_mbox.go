@@ -62,6 +62,9 @@ func updateStatusHeader(headers string, newStatus string) (string, bool) {
 		if newStatus == nowStatus {
 			return headers, false
 		}
+		if headers[statusEnd] == '\n' {
+			statusEnd += 1
+		}
 		return headers[:statusStart] + "Status: " + newStatus + "\n" + headers[statusEnd:], true
 	}
 

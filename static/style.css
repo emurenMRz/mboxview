@@ -134,6 +134,20 @@ h2 {
     font-weight: bold;
 }
 
+.delete-email {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+    color: #999;
+    padding: 2px 4px;
+    margin-left: 4px;
+}
+
+.delete-email:hover {
+    color: #f00;
+}
+
 #email-content {
     height: 100%;
     overflow: auto; /* allow scrolling for plain text content by default */

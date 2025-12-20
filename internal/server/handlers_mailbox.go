@@ -16,7 +16,7 @@ import (
 	"github.com/emersion/go-mbox"
 )
 
-func markEmailReadHandler(w http.ResponseWriter, r *http.Request, mailboxName string, emailIdStr string) {
+func updateStatusHandler(w http.ResponseWriter, r *http.Request, mailboxName string, emailIdStr string, status string) {
 	// mailboxName coming from API is UTF-8; encode to IMAP-UTF7 to find file on disk
 	encodedMailboxName, err := utf7.Encoding.NewEncoder().String(mailboxName)
 	if err != nil {
@@ -50,7 +50,7 @@ func markEmailReadHandler(w http.ResponseWriter, r *http.Request, mailboxName st
 	// Find header part (before body)
 	headers, body := splitHeadersFromBody(rest)
 	// Update status header
-	newHeaders, updated := updateStatusHeader(headers, "RO")
+	newHeaders, updated := updateStatusHeader(headers, status)
 	if !updated {
 		w.WriteHeader(http.StatusOK)
 		return
@@ -94,6 +94,14 @@ func markEmailReadHandler(w http.ResponseWriter, r *http.Request, mailboxName st
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func markEmailReadHandler(w http.ResponseWriter, r *http.Request, mailboxName string, emailIdStr string) {
+	updateStatusHandler(w, r, mailboxName, emailIdStr, "RO")
+}
+
+func deleteEmailHandler(w http.ResponseWriter, r *http.Request, mailboxName string, emailIdStr string) {
+	updateStatusHandler(w, r, mailboxName, emailIdStr, "D")
 }
 
 // readMessages is provided in helpers_mbox.go
@@ -148,6 +156,7 @@ func listEmailsHandler(w http.ResponseWriter, r *http.Request, mailboxName strin
 		}
 		if err != nil {
 			log.Printf("Error reading message in %s: %v", mailboxName, err)
+			i++
 			continue
 		}
 
@@ -155,9 +164,21 @@ func listEmailsHandler(w http.ResponseWriter, r *http.Request, mailboxName strin
 		mr, err := mail.ReadMessage(mrReader)
 		if err != nil {
 			log.Printf("Failed to parse message headers in %s: %v", mailboxName, err)
+			i++
 			continue
 		}
+
 		header := mr.Header
+		status := header.Get("Status")
+		if status == "D" {
+			i++
+			continue
+		}
+		if status == "" {
+			// ヘッダが無い場合は新着扱い
+			status = "N"
+		}
+
 		subject := header.Get("Subject")
 
 		decoder := new(mime.WordDecoder)
@@ -174,12 +195,6 @@ func listEmailsHandler(w http.ResponseWriter, r *http.Request, mailboxName strin
 		// parse Date header into time for sorting
 		dateStr := header.Get("Date")
 		ts := parseDate(dateStr)
-
-		status := header.Get("Status")
-		if status == "" {
-			// ヘッダが無い場合は新着扱い
-			status = "N"
-		}
 
 		emails = append(emails, Email{
 			ID:        i,
