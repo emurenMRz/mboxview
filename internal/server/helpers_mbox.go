@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-// readMessages reads all messages from an mbox file and returns them as a slice of strings.
+// ReadMessages reads all messages from an mbox file and returns them as a slice of strings.
 // It opens the file in read-only mode.
-func readMessages(mboxPath string, w http.ResponseWriter, r *http.Request) ([]string, bool) {
+func ReadMessages(mboxPath string, w http.ResponseWriter, r *http.Request) ([]string, bool) {
 	f, err := os.Open(mboxPath)
 	if err != nil {
 		http.NotFound(w, r)
@@ -35,14 +35,14 @@ func readMessages(mboxPath string, w http.ResponseWriter, r *http.Request) ([]st
 	return messages, true
 }
 
-func splitAtFirstNewline(s string) (string, string) {
+func SplitAtFirstNewline(s string) (string, string) {
 	if i := strings.Index(s, "\n"); i != -1 {
 		return s[:i], s[i+1:]
 	}
 	return s, ""
 }
 
-func splitHeadersFromBody(s string) (string, string) {
+func SplitHeadersFromBody(s string) (string, string) {
 	if i := strings.Index(s, "\n\n"); i != -1 {
 		return s[:i+1], s[i+2:]
 	}

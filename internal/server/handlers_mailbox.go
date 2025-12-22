@@ -33,7 +33,7 @@ func updateStatusHandler(w http.ResponseWriter, r *http.Request, mailboxName str
 	}
 
 	// Read the mbox file and parse messages
-	messages, ok := readMessages(mboxPath, w, r)
+	messages, ok := ReadMessages(mboxPath, w, r)
 	if !ok {
 		return
 	}
@@ -46,9 +46,9 @@ func updateStatusHandler(w http.ResponseWriter, r *http.Request, mailboxName str
 	// Update the target message
 	targetMsgStr := messages[emailId]
 	// Split envelope line from the rest
-	envelopeLine, rest := splitAtFirstNewline(targetMsgStr)
+	envelopeLine, rest := SplitAtFirstNewline(targetMsgStr)
 	// Find header part (before body)
-	headers, body := splitHeadersFromBody(rest)
+	headers, body := SplitHeadersFromBody(rest)
 	// Update status header
 	newHeaders, updated := updateStatusHeader(headers, status)
 	if !updated {
