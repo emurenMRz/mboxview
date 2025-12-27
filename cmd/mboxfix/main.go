@@ -17,6 +17,7 @@ func main() {
 		outPath       = flag.String("out", "", "Output file path (for fix mode)")
 		dryRun        = flag.Bool("dry-run", false, "Simulate fix operation without writing (for fix mode)")
 		removeDeleted = flag.Bool("remove-deleted", false, "Remove messages with Status: D (for fix mode)")
+		normalize     = flag.Bool("normalize", false, "Normalize headers (for fix mode)")
 		quiet         = flag.Bool("quiet", false, "Suppress non-error output (for fix mode)")
 		msgIndex      = flag.Int("msg", -1, "Message index (for show mode)")
 		inputPath     = flag.String("path", "", "Input mbox file path (required)")
@@ -38,7 +39,7 @@ func main() {
 	case "validate":
 		validateMessages(messages)
 	case "fix":
-		fixMessages(messages, *inputPath, *inplace, *outPath, *dryRun, *removeDeleted, *quiet)
+		fixMessages(messages, *inputPath, *inplace, *outPath, *dryRun, *removeDeleted, *quiet, *normalize)
 	case "show":
 		showMessage(messages, *msgIndex)
 	default:
@@ -63,7 +64,7 @@ func validateMessages(messages []string) {
 	outputText(allResults)
 }
 
-func fixMessages(messages []string, inputPath string, inplace bool, outPath string, dryRun, removeDeleted, quiet bool) {
+func fixMessages(messages []string, inputPath string, inplace bool, outPath string, dryRun, removeDeleted, quiet, normalize bool) {
 	// Filter out deleted messages if requested
 	if removeDeleted {
 		var filteredMessages []string
@@ -84,36 +85,39 @@ func fixMessages(messages []string, inputPath string, inplace bool, outPath stri
 	}
 
 	// Normalize messages
-	var normalizedMessages []string
-	var allResults []mboxheader.ValidationResult
+	if normalize {
+		var normalizedMessages []string
+		var allResults []mboxheader.ValidationResult
 
-	for i, message := range messages {
-		// Split headers and body
-		envelopeLine, rest := server.SplitAtFirstNewline(message)
-		headers, body := server.SplitHeadersFromBody(rest)
+		for i, message := range messages {
+			// Split headers and body
+			envelopeLine, rest := server.SplitAtFirstNewline(message)
+			headers, body := server.SplitHeadersFromBody(rest)
 
-		// Normalize headers
-		normalizedMessage, results := mboxheader.NormalizeHeaders(headers, i)
-		normalizedMessages = append(normalizedMessages, envelopeLine+"\n"+normalizedMessage+"\n"+body)
-		allResults = append(allResults, results...)
-	}
+			// Normalize headers
+			normalizedMessage, results := mboxheader.NormalizeHeaders(headers, i)
+			normalizedMessages = append(normalizedMessages, envelopeLine+"\n"+normalizedMessage+"\n"+body)
+			allResults = append(allResults, results...)
+		}
+		messages = normalizedMessages
 
-	// Output results
-	if !quiet {
-		outputText(allResults)
+		// Output results
+		if !quiet {
+			outputText(allResults)
+		}
 	}
 
 	// Write to file if not dry-run
 	if !dryRun {
 		if inplace {
 			// Write back to input file
-			writeMessagesToFile(normalizedMessages, inputPath)
+			writeMessagesToFile(messages, inputPath)
 		} else if outPath != "" {
 			// Write to output file
-			writeMessagesToFile(normalizedMessages, outPath)
+			writeMessagesToFile(messages, outPath)
 		} else {
 			// Write to stdout
-			for _, msg := range normalizedMessages {
+			for _, msg := range messages {
 				fmt.Println(msg)
 			}
 		}
