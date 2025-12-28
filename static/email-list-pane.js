@@ -68,6 +68,7 @@ function renderEmailRows(emails, mailboxName, onEmailSelected) {
         checkbox.dataset.emailId = email.id;
         checkbox.addEventListener('change', () => {
             updateBatchDeleteButton();
+            if (typeof updateSelectAllHeader === 'function') updateSelectAllHeader();
         });
         checkboxCell.appendChild(checkbox);
         row.appendChild(checkboxCell);
@@ -114,6 +115,9 @@ function renderEmailRows(emails, mailboxName, onEmailSelected) {
 
         emailListBody.appendChild(row);
     });
+
+    // Sync header checkbox state with rendered rows
+    if (typeof updateSelectAllHeader === 'function') updateSelectAllHeader();
 }
 
 function applyFilters(mailboxName, onEmailSelected) {
@@ -163,8 +167,47 @@ async function deleteEmail(mailboxName, emailId, rowElement) {
         }
         // Remove the row from UI
         rowElement.remove();
+        if (typeof updateSelectAllHeader === 'function') updateSelectAllHeader();
+        if (typeof updateBatchDeleteButton === 'function') updateBatchDeleteButton();
     } catch (error) {
         console.error(`Failed to delete email ${emailId}:`, error);
         alert('メールの削除に失敗しました。');
     }
 }
+
+// Update the header select-all checkbox state based on visible row checkboxes
+function updateSelectAllHeader() {
+    const headerCb = document.getElementById('select-all-checkbox');
+    if (!headerCb) return;
+    const visible = Array.from(document.querySelectorAll('#email-list tbody .email-checkbox'));
+    if (visible.length === 0) {
+        headerCb.checked = false;
+        headerCb.indeterminate = false;
+        return;
+    }
+    const checked = visible.filter(cb => cb.checked).length;
+    if (checked === 0) {
+        headerCb.checked = false;
+        headerCb.indeterminate = false;
+    } else if (checked === visible.length) {
+        headerCb.checked = true;
+        headerCb.indeterminate = false;
+    } else {
+        headerCb.checked = false;
+        headerCb.indeterminate = true;
+    }
+}
+
+// Attach handler for header select-all checkbox
+document.addEventListener('DOMContentLoaded', () => {
+    const headerCb = document.getElementById('select-all-checkbox');
+    if (!headerCb) return;
+    headerCb.addEventListener('change', (e) => {
+        const checked = e.target.checked;
+        document.querySelectorAll('#email-list tbody .email-checkbox').forEach(cb => {
+            cb.checked = checked;
+        });
+        if (typeof updateBatchDeleteButton === 'function') updateBatchDeleteButton();
+        updateSelectAllHeader();
+    });
+});
