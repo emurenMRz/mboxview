@@ -8,9 +8,9 @@ async function loadEmails(emailListBody, mailboxName, onEmailSelected) {
     emailListBody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
     try {
         const response = await fetch(`/api/mailboxes/${encodeURIComponent(mailboxName)}/emails`);
-        if (!response.ok) {
+        if (!response.ok)
             throw new Error(`HTTP error! status: ${response.status}`);
-        }
+
         const emails = await response.json();
         allEmails = emails;
 
@@ -28,7 +28,6 @@ async function loadEmails(emailListBody, mailboxName, onEmailSelected) {
         filterString.addEventListener('input', debounce(applyFilters, mailboxName, onEmailSelected, 300));
 
         renderEmailRows(allEmails, mailboxName, onEmailSelected);
-
     } catch (error) {
         console.error(`Failed to load emails for ${mailboxName}:`, error);
         emailListBody.innerHTML = '<tr><td colspan="3">Error loading emails.</td></tr>';
@@ -141,14 +140,11 @@ async function markEmailAsRead(mailboxName, emailId) {
                 'Content-Type': 'application/json',
             }
         });
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
         // Update UI for the specific email row only
         const row = document.querySelector('tr[data-email-id="' + emailId + '"]');
-        if (row) {
-            row.classList.remove('new-mail-row');
-        }
+        if (row) row.classList.remove('new-mail-row');
     } catch (error) {
         console.error(`Failed to mark email ${emailId} as read:`, error);
     }
@@ -162,11 +158,14 @@ async function deleteEmail(mailboxName, emailId, rowElement) {
         const response = await fetch(`/api/mailboxes/${encodeURIComponent(mailboxName)}/emails/${emailId}`, {
             method: 'DELETE',
         });
-        if (!response.ok) {
+        if (!response.ok)
             throw new Error(`HTTP error! status: ${response.status}`);
-        }
+
         // Remove the row from UI
         rowElement.remove();
+        // Also remove from client-side allEmails so filters won't re-show it
+        if (typeof allEmails !== 'undefined' && Array.isArray(allEmails))
+            allEmails = allEmails.filter(email => String(email.id) !== String(emailId));
         if (typeof updateSelectAllHeader === 'function') updateSelectAllHeader();
         if (typeof updateBatchDeleteButton === 'function') updateBatchDeleteButton();
     } catch (error) {

@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const batchDeleteContainer = document.createElement('div');
     batchDeleteContainer.id = 'batch-delete-container';
     batchDeleteContainer.style.display = 'none';
-    
+
     const batchDeleteButton = document.createElement('button');
     batchDeleteButton.id = 'batch-delete-btn';
     batchDeleteButton.textContent = '選択したメールを削除';
@@ -56,18 +56,17 @@ function updateBatchDeleteButton() {
 
 async function deleteBatchEmails(mailboxName) {
     const checkboxes = Array.from(document.querySelectorAll('.email-checkbox:checked'));
-    
+
     if (checkboxes.length === 0) {
         alert('削除するメールを選択してください。');
         return;
     }
-    
+
     const emailIds = checkboxes.map(cb => parseInt(cb.dataset.emailId));
-    
-    if (!confirm(`${emailIds.length}件のメールを削除しますか？`)) {
+
+    if (!confirm(`${emailIds.length}件のメールを削除しますか？`))
         return;
-    }
-    
+
     try {
         const response = await fetch(`/api/mailboxes/${encodeURIComponent(mailboxName)}/emails/delete-batch`, {
             method: 'POST',
@@ -76,21 +75,22 @@ async function deleteBatchEmails(mailboxName) {
             },
             body: JSON.stringify({ ids: emailIds })
         });
-        
-        if (!response.ok) {
+
+        if (!response.ok)
             throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
+
         const result = await response.json();
-        
+
         // Remove rows from UI
         checkboxes.forEach(cb => {
             const row = cb.closest('tr');
-            if (row) {
-                row.remove();
-            }
+            if (row) row.remove();
         });
-        
+
+        // Update allEmails by filtering out deleted emails
+        if (typeof allEmails !== 'undefined' && Array.isArray(allEmails))
+            allEmails = allEmails.filter(email => !emailIds.some(deletedId => Number(email.id) === Number(deletedId)));
+
         // Reset button and show summary
         const container = document.getElementById('batch-delete-container');
         container.style.display = 'none';
