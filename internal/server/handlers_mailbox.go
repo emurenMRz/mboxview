@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"mime"
@@ -59,40 +60,12 @@ func updateStatusHandler(w http.ResponseWriter, r *http.Request, mailboxName str
 	// Reconstruct the message
 	messages[emailId] = envelopeLine + "\n" + newHeaders + "\n" + body
 
-	// Now rewrite the mbox file with the updated messages
-	tempFile, err := os.CreateTemp(basePath, "mboxview-update-*.mbox")
+	err = updateMBox(mboxPath, messages)
 	if err != nil {
-		log.Printf("Error creating temp file: %v", err)
+		log.Printf("%v", err)
 		http.Error(w, "Error updating mbox", http.StatusInternalServerError)
 		return
 	}
-	defer os.Remove(tempFile.Name())
-	defer tempFile.Close()
-
-	// Write each message to the temp file directly
-	for _, msgStr := range messages {
-		_, err := tempFile.WriteString(msgStr)
-		if err != nil {
-			log.Printf("Error writing message to temp file: %v", err)
-			http.Error(w, "Error updating mbox", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	// Close the temp file to flush
-	if err := tempFile.Close(); err != nil {
-		log.Printf("Error closing temp file: %v", err)
-		http.Error(w, "Error updating mbox", http.StatusInternalServerError)
-		return
-	}
-
-	// Atomically replace the original file
-	if err := os.Rename(filepath.Clean(tempFile.Name()), mboxPath); err != nil {
-		log.Printf("Error replacing original file: %v", err)
-		http.Error(w, "Error updating mbox", http.StatusInternalServerError)
-		return
-	}
-
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -104,7 +77,104 @@ func deleteEmailHandler(w http.ResponseWriter, r *http.Request, mailboxName stri
 	updateStatusHandler(w, r, mailboxName, emailIdStr, "D")
 }
 
-// readMessages is provided in helpers_mbox.go
+func updateMBox(mboxPath string, messages []string) error {
+	tempFile, err := os.CreateTemp(basePath, "mboxview-update-*.mbox")
+	if err != nil {
+		return fmt.Errorf("Error creating temp file: %v", err)
+	}
+	defer os.Remove(tempFile.Name())
+	defer tempFile.Close()
+
+	for _, msgStr := range messages {
+		_, err := tempFile.WriteString(msgStr)
+		if err != nil {
+			return fmt.Errorf("Error writing message to temp file: %v", err)
+		}
+	}
+
+	if err := tempFile.Close(); err != nil {
+		return fmt.Errorf("Error closing temp file: %v", err)
+	}
+
+	if err := os.Rename(filepath.Clean(tempFile.Name()), mboxPath); err != nil {
+		return fmt.Errorf("Error replacing original file: %v", err)
+	}
+
+	return nil
+}
+
+type BatchDeleteRequest struct {
+	IDs []int `json:"ids"`
+}
+
+type BatchDeleteResponse struct {
+	Deleted int `json:"deleted"`
+	Failed  int `json:"failed"`
+}
+
+func deleteBatchEmailsHandler(w http.ResponseWriter, r *http.Request, mailboxName string) {
+	var req BatchDeleteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		http.Error(w, "No IDs provided", http.StatusBadRequest)
+		return
+	}
+
+	encodedMailboxName, err := utf7.Encoding.NewEncoder().String(mailboxName)
+	if err != nil {
+		http.Error(w, "Invalid mailbox name", http.StatusBadRequest)
+		return
+	}
+	mboxPath := filepath.Join(basePath, encodedMailboxName)
+
+	messages, ok := ReadMessages(mboxPath, w, r)
+	if !ok {
+		return
+	}
+
+	validIDs := make(map[int]bool)
+	for _, id := range req.IDs {
+		if id >= 0 && id < len(messages) {
+			validIDs[id] = true
+		}
+	}
+
+	for id := range validIDs {
+		targetMsgStr := messages[id]
+		envelopeLine, rest := SplitAtFirstNewline(targetMsgStr)
+		headers, body := SplitHeadersFromBody(rest)
+		newHeaders, updated := updateStatusHeader(headers, "D")
+		messages[id] = envelopeLine + "\n" + newHeaders + "\n" + body
+		validIDs[id] = updated
+	}
+
+	err = updateMBox(mboxPath, messages)
+	if err != nil {
+		log.Printf("%v", err)
+		http.Error(w, "Error updating mbox", http.StatusInternalServerError)
+		return
+	}
+
+	response := BatchDeleteResponse{
+		Deleted: 0,
+		Failed:  0,
+	}
+
+	for _, state := range validIDs {
+		if state {
+			response.Deleted++
+		} else {
+			response.Failed++
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
 
 func mailboxesHandler(w http.ResponseWriter, _ *http.Request) {
 	files, err := os.ReadDir(basePath)

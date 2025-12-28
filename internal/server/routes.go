@@ -31,6 +31,8 @@ func handleMailboxRoutes(w http.ResponseWriter, r *http.Request) {
 		case 3:
 			if r.Method == "DELETE" {
 				deleteEmailHandler(w, r, mboxName, parts[2])
+			} else if r.Method == "POST" && parts[2] == "delete-batch" {
+				deleteBatchEmailsHandler(w, r, mboxName)
 			} else {
 				emailContentHandler(w, r, mboxName, parts[2])
 			}

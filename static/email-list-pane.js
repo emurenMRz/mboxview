@@ -48,7 +48,7 @@ function renderEmailRows(emails, mailboxName, onEmailSelected) {
     emailListBody.innerHTML = ''; // Clear existing rows
 
     if (!emails || emails.length === 0) {
-        emailListBody.innerHTML = '<tr><td colspan="4">No emails in this mailbox.</td></tr>';
+        emailListBody.innerHTML = '<tr><td colspan="5">No emails in this mailbox.</td></tr>';
         return;
     }
 
@@ -58,6 +58,19 @@ function renderEmailRows(emails, mailboxName, onEmailSelected) {
         // 新着メール（StatusにNまたはUが含まれる）は太字
         if (email.status.includes('N') || email.status.includes('U'))
             row.classList.add('new-mail-row');
+
+        // Add checkbox cell
+        const checkboxCell = document.createElement('td');
+        checkboxCell.className = 'checkbox-cell';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'email-checkbox';
+        checkbox.dataset.emailId = email.id;
+        checkbox.addEventListener('change', () => {
+            updateBatchDeleteButton();
+        });
+        checkboxCell.appendChild(checkbox);
+        row.appendChild(checkboxCell);
 
         const dateCell = document.createElement('td');
         dateCell.textContent = new Date(email.date).toLocaleString();

@@ -127,27 +127,70 @@ h2 {
     box-sizing: border-box;
 }
 
+#email-list .col-checkbox {
+    width: 2.5rem;
+}
+
 #email-list .col-date {
     width: 12rem;
 }
 
 #email-list .col-from {
-    max-width: calc((100% - 14rem) * .3);
+    max-width: calc((100% - 16.5rem) * .3);
 }
 
 #email-list .col-subject {
-    max-width: calc((100% - 14rem) * .7);
+    max-width: calc((100% - 16.5rem) * .7);
 }
 
-#email-list .col-check {
+#email-list .col-delete {
     width: 2rem;
 }
 
-#email-list th,
-#email-list td {
-    text-align: left;
-    padding: 8px;
+#email-filter {
+    padding: 10px;
     border-bottom: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#filter-string {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+#batch-delete-container {
+    display: none;
+}
+
+#batch-delete-btn {
+    width: 100%;
+    padding: 10px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: bold;
+}
+
+#batch-delete-btn:hover {
+    background-color: #c82333;
+}
+
+.checkbox-cell {
+    text-align: center;
+    padding: 8px !important;
+}
+
+.email-checkbox {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
 }
 
 #email-list th:last-child,

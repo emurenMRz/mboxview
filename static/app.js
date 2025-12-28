@@ -10,6 +10,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentMailbox = null;
 
+    // Create batch delete button and insert into DOM
+    const emailFilter = document.getElementById('email-filter');
+    const batchDeleteContainer = document.createElement('div');
+    batchDeleteContainer.id = 'batch-delete-container';
+    batchDeleteContainer.style.display = 'none';
+    
+    const batchDeleteButton = document.createElement('button');
+    batchDeleteButton.id = 'batch-delete-btn';
+    batchDeleteButton.textContent = '選択したメールを削除';
+    batchDeleteButton.addEventListener('click', () => {
+        deleteBatchEmails(currentMailbox);
+    });
+    batchDeleteContainer.appendChild(batchDeleteButton);
+    emailFilter.appendChild(batchDeleteContainer);
+
     // Initialize folder pane with callback
     loadFolders(folderList, (folder) => {
         if (currentMailbox !== folder) {
@@ -28,3 +43,61 @@ document.addEventListener('DOMContentLoaded', () => {
     resizeFolderPane();
     resizeEmailsPane();
 });
+
+function updateBatchDeleteButton() {
+    const checkboxes = document.querySelectorAll('.email-checkbox:checked');
+    const container = document.getElementById('batch-delete-container');
+    if (checkboxes.length > 0) {
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+async function deleteBatchEmails(mailboxName) {
+    const checkboxes = Array.from(document.querySelectorAll('.email-checkbox:checked'));
+    
+    if (checkboxes.length === 0) {
+        alert('削除するメールを選択してください。');
+        return;
+    }
+    
+    const emailIds = checkboxes.map(cb => parseInt(cb.dataset.emailId));
+    
+    if (!confirm(`${emailIds.length}件のメールを削除しますか？`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/mailboxes/${encodeURIComponent(mailboxName)}/emails/delete-batch`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ids: emailIds })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Remove rows from UI
+        checkboxes.forEach(cb => {
+            const row = cb.closest('tr');
+            if (row) {
+                row.remove();
+            }
+        });
+        
+        // Reset button and show summary
+        const container = document.getElementById('batch-delete-container');
+        container.style.display = 'none';
+        alert(`${result.deleted}件削除、${result.failed}件失敗しました。`);
+    } catch (error) {
+        console.error('Failed to delete batch emails:', error);
+        alert('メールの削除に失敗しました。');
+    }
+}
+
