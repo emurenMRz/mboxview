@@ -1,4 +1,5 @@
-body, html {
+body,
+html {
     margin: 0;
     padding: 0;
     font-family: sans-serif;
@@ -14,12 +15,14 @@ body, html {
 #folders-pane {
     /* Make folder pane a fixed flex basis with sensible min/max so it stays
        between 200px and 300px while allowing the right container to adapt. */
-    flex: 0 0 250px; /* preferred width */
+    flex: 0 0 250px;
+    /* preferred width */
     min-width: 200px;
     max-width: 300px;
     border-right: 1px solid #ccc;
     overflow-y: auto;
-    box-sizing: border-box; /* ensure width includes padding to avoid layout shift when resizing */
+    box-sizing: border-box;
+    /* ensure width includes padding to avoid layout shift when resizing */
 }
 
 #right-container {
@@ -38,10 +41,12 @@ body, html {
     -webkit-user-select: none;
     -moz-user-select: none;
     user-select: none;
-    touch-action: none; /* prevent the browser from handling touch gestures while dragging */
+    touch-action: none;
+    /* prevent the browser from handling touch gestures while dragging */
 }
+
 #pane-resizer:hover {
-    background: rgba(0,0,0,0.04);
+    background: rgba(0, 0, 0, 0.04);
 }
 
 #emails-pane {
@@ -52,7 +57,11 @@ body, html {
     max-height: calc(100% - 120px);
     border-bottom: 1px solid #ccc;
     overflow-y: auto;
-    box-sizing: border-box; /* ensure width includes padding to avoid layout shift when resizing */
+    box-sizing: border-box;
+    /* ensure width includes padding to avoid layout shift when resizing */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 #vertical-resizer {
@@ -63,8 +72,9 @@ body, html {
     user-select: none;
     touch-action: none;
 }
+
 #vertical-resizer:hover {
-    background: rgba(0,0,0,0.04);
+    background: rgba(0, 0, 0, 0.04);
 }
 
 #content-pane {
@@ -106,15 +116,43 @@ h2 {
     color: white;
 }
 
+#email-list-box {
+    width: 100%;
+    overflow: auto;
+}
+
 #email-list {
     width: 100%;
     border-collapse: collapse;
+    box-sizing: border-box;
 }
 
-#email-list th, #email-list td {
+#email-list .col-date {
+    width: 12rem;
+}
+
+#email-list .col-from {
+    max-width: calc((100% - 14rem) * .3);
+}
+
+#email-list .col-subject {
+    max-width: calc((100% - 14rem) * .7);
+}
+
+#email-list .col-check {
+    width: 2rem;
+}
+
+#email-list th,
+#email-list td {
     text-align: left;
     padding: 8px;
     border-bottom: 1px solid #ddd;
+}
+
+#email-list th:last-child,
+#email-list td:last-child {
+    text-align: center;
 }
 
 #email-list tbody tr {
@@ -150,13 +188,15 @@ h2 {
 
 #email-content {
     height: 100%;
-    overflow: auto; /* allow scrolling for plain text content by default */
+    overflow: auto;
+    /* allow scrolling for plain text content by default */
 }
 
 /* Make the table header sticky so it remains visible while scrolling */
 #email-list thead th {
     position: sticky;
     top: 0;
-    background: #fff; /* ensure header has a background */
+    background: #fff;
+    /* ensure header has a background */
     z-index: 2;
 }

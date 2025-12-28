@@ -2,6 +2,7 @@
  * Email List Pane Handler
  * Manages loading and displaying email list
  */
+let allEmails = [];
 
 async function loadEmails(emailListBody, mailboxName, onEmailSelected) {
     emailListBody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
@@ -11,6 +12,9 @@ async function loadEmails(emailListBody, mailboxName, onEmailSelected) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const emails = await response.json();
+        allEmails = emails;
+
+        document.getElementById('filter-string').value = '';
 
         // Clear existing selected state
         document.querySelectorAll('#email-list tbody tr.selected').forEach(row => {
@@ -18,65 +22,98 @@ async function loadEmails(emailListBody, mailboxName, onEmailSelected) {
         });
 
         emailListBody.innerHTML = ''; // Clear loading message
-        if (!emails || emails.length === 0) {
-            emailListBody.innerHTML = '<tr><td colspan="3">No emails in this mailbox.</td></tr>';
-            return;
-        }
 
-        emails.forEach(email => {
-            const row = document.createElement('tr');
-            row.dataset.emailId = email.id;
-            // 新着メール（StatusにNまたはUが含まれる）は太字
-            if (email.status.includes('N') || email.status.includes('U'))
-                row.classList.add('new-mail-row');
+        // Add event listeners with debouncing
+        const filterString = document.getElementById('filter-string');
+        filterString.addEventListener('input', debounce(applyFilters, mailboxName, onEmailSelected, 300));
 
-            const dateCell = document.createElement('td');
-            dateCell.textContent = new Date(email.date).toLocaleString();
-
-            const fromCell = document.createElement('td');
-            fromCell.textContent = email.from;
-
-            const subjectCell = document.createElement('td');
-            subjectCell.textContent = email.subject;
-
-            row.appendChild(dateCell);
-            row.appendChild(fromCell);
-            row.appendChild(subjectCell);
-
-            // Add delete button
-            const deleteCell = document.createElement('td');
-            const deleteButton = document.createElement('button');
-            deleteButton.textContent = '✖';
-            deleteButton.className = 'delete-email';
-            deleteButton.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent row click
-                deleteEmail(mailboxName, email.id, row);
-            });
-            deleteCell.appendChild(deleteButton);
-            row.appendChild(deleteCell);
-
-            row.addEventListener('click', () => {
-                // Clear selection from all rows
-                document.querySelectorAll('#email-list tbody tr').forEach(r => {
-                    r.classList.remove('selected');
-                });
-                // Mark clicked row as selected
-                row.classList.add('selected');
-                onEmailSelected(mailboxName, email.id);
-            });
-            
-            // Also mark as read when double-clicked
-            row.addEventListener('dblclick', () => {
-                markEmailAsRead(mailboxName, email.id);
-            });
-
-            emailListBody.appendChild(row);
-        });
+        renderEmailRows(allEmails, mailboxName, onEmailSelected);
 
     } catch (error) {
         console.error(`Failed to load emails for ${mailboxName}:`, error);
         emailListBody.innerHTML = '<tr><td colspan="3">Error loading emails.</td></tr>';
     }
+}
+
+function debounce(func, mailboxName, onEmailSelected, delay) {
+    let timeoutId;
+    return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, [mailboxName, onEmailSelected, ...args]), delay);
+    };
+}
+
+function renderEmailRows(emails, mailboxName, onEmailSelected) {
+    const emailListBody = document.querySelector('#email-list tbody');
+    emailListBody.innerHTML = ''; // Clear existing rows
+
+    if (!emails || emails.length === 0) {
+        emailListBody.innerHTML = '<tr><td colspan="4">No emails in this mailbox.</td></tr>';
+        return;
+    }
+
+    emails.forEach(email => {
+        const row = document.createElement('tr');
+        row.dataset.emailId = email.id;
+        // 新着メール（StatusにNまたはUが含まれる）は太字
+        if (email.status.includes('N') || email.status.includes('U'))
+            row.classList.add('new-mail-row');
+
+        const dateCell = document.createElement('td');
+        dateCell.textContent = new Date(email.date).toLocaleString();
+
+        const fromCell = document.createElement('td');
+        fromCell.textContent = email.from;
+
+        const subjectCell = document.createElement('td');
+        subjectCell.textContent = email.subject;
+
+        row.appendChild(dateCell);
+        row.appendChild(fromCell);
+        row.appendChild(subjectCell);
+
+        // Add delete button
+        const deleteCell = document.createElement('td');
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = '✖';
+        deleteButton.className = 'delete-email';
+        deleteButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent row click
+            deleteEmail(mailboxName, email.id, row);
+        });
+        deleteCell.appendChild(deleteButton);
+        row.appendChild(deleteCell);
+
+        row.addEventListener('click', () => {
+            // Clear selection from all rows
+            document.querySelectorAll('#email-list tbody tr').forEach(r => {
+                r.classList.remove('selected');
+            });
+            // Mark clicked row as selected
+            row.classList.add('selected');
+            onEmailSelected(mailboxName, email.id);
+        });
+
+        // Also mark as read when double-clicked
+        row.addEventListener('dblclick', () => {
+            markEmailAsRead(mailboxName, email.id);
+        });
+
+        emailListBody.appendChild(row);
+    });
+}
+
+function applyFilters(mailboxName, onEmailSelected) {
+    const filterString = document.getElementById('filter-string').value.toLowerCase();
+    const filteredEmails = filterString === ''
+        ? allEmails
+        : allEmails.filter(email => {
+            const matchesFrom = email.from.toLowerCase().includes(filterString);
+            const matchesSubject = email.subject.toLowerCase().includes(filterString);
+            return matchesFrom || matchesSubject;
+        });
+
+    renderEmailRows(filteredEmails, mailboxName, onEmailSelected);
 }
 
 async function markEmailAsRead(mailboxName, emailId) {

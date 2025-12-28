@@ -15,16 +15,28 @@
         <div id="pane-resizer" aria-hidden="true"></div>
         <div id="right-container">
             <div id="emails-pane" class="pane">
-                <table id="email-list">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>From</th>
-                            <th>Subject</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                <div id="email-filter">
+                    <input type="text" id="filter-string" placeholder="送信元/サブジェクトで検索">
+                </div>
+                <div id="email-list-box">
+                    <table id="email-list">
+                        <colgroup>
+                            <col class="col-date"/>
+                            <col class="col-from"/>
+                            <col class="col-subject"/>
+                            <col class="col-check"/>
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>From</th>
+                                <th>Subject</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
             <!-- Vertical resizer between email list and content pane -->
             <div id="vertical-resizer" aria-hidden="true"></div>
