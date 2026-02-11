@@ -50,27 +50,41 @@ func SplitHeadersFromBody(s string) (string, string) {
 }
 
 func updateStatusHeader(headers string, newStatus string) (string, bool) {
-	statusStart := strings.Index(headers, "Status: ")
-	if statusStart != -1 {
-		statusEnd := strings.Index(headers[statusStart:], "\n")
-		if statusEnd != -1 {
-			statusEnd += statusStart
-		} else {
-			statusEnd = len(headers)
+	searchKey := "Status: "
+	searchIndex := 0
+
+	for {
+		index := strings.Index(headers[searchIndex:], searchKey)
+		if index == -1 {
+			break
 		}
-		nowStatus := strings.TrimSpace(headers[statusStart+len("Status: ") : statusEnd])
-		if newStatus == nowStatus {
+		actualIndex := searchIndex + index
+		isLineStart := actualIndex == 0 || headers[actualIndex-1] == '\n'
+		if !isLineStart {
+			searchIndex = actualIndex + 1
+			continue
+		}
+
+		statusEnd := strings.Index(headers[actualIndex:], "\n")
+		if statusEnd == -1 {
+			statusEnd = len(headers)
+		} else {
+			statusEnd += actualIndex
+		}
+
+		currentStatus := strings.TrimSpace(headers[actualIndex+len(searchKey) : statusEnd])
+		if currentStatus == newStatus {
 			return headers, false
 		}
-		if headers[statusEnd] == '\n' {
-			statusEnd += 1
+
+		if statusEnd < len(headers) && headers[statusEnd] == '\n' {
+			statusEnd++
 		}
-		return headers[:statusStart] + "Status: " + newStatus + "\n" + headers[statusEnd:], true
+		return headers[:actualIndex] + searchKey + newStatus + "\n" + headers[statusEnd:], true
 	}
 
-	if headers[len(headers)-1] != '\n' {
+	if len(headers) > 0 && headers[len(headers)-1] != '\n' {
 		headers += "\n"
 	}
-
-	return headers + "Status: " + newStatus + "\n", true
+	return headers + searchKey + newStatus + "\n", true
 }
