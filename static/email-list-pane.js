@@ -16,18 +16,19 @@ async function loadEmails(emailListBody, mailboxName, onEmailSelected) {
 
         document.getElementById('filter-string').value = '';
 
-        // Clear existing selected state
         document.querySelectorAll('#email-list tbody tr.selected').forEach(row => {
             row.classList.remove('selected');
         });
 
-        emailListBody.innerHTML = ''; // Clear loading message
+        emailListBody.innerHTML = '';
 
-        // Add event listeners with debouncing
         const filterString = document.getElementById('filter-string');
         filterString.addEventListener('input', debounce(applyFilters, mailboxName, onEmailSelected, 300));
 
         renderEmailRows(allEmails, mailboxName, onEmailSelected);
+
+        window._emailCount = emails.length;
+        if (typeof updateStatusBar === 'function') updateStatusBar();
     } catch (error) {
         console.error(`Failed to load emails for ${mailboxName}:`, error);
         emailListBody.innerHTML = '<tr><td colspan="3">Error loading emails.</td></tr>';
@@ -44,7 +45,7 @@ function debounce(func, mailboxName, onEmailSelected, delay) {
 
 function renderEmailRows(emails, mailboxName, onEmailSelected) {
     const emailListBody = document.querySelector('#email-list tbody');
-    emailListBody.innerHTML = ''; // Clear existing rows
+    emailListBody.innerHTML = '';
 
     if (!emails || emails.length === 0) {
         emailListBody.innerHTML = '<tr><td colspan="5">No emails in this mailbox.</td></tr>';
@@ -54,11 +55,9 @@ function renderEmailRows(emails, mailboxName, onEmailSelected) {
     emails.forEach(email => {
         const row = document.createElement('tr');
         row.dataset.emailId = email.id;
-        // 新着メール（StatusにNまたはUが含まれる）は太字
         if (email.status.includes('N') || email.status.includes('U'))
             row.classList.add('new-mail-row');
 
-        // Add checkbox cell
         const checkboxCell = document.createElement('td');
         checkboxCell.className = 'checkbox-cell';
         const checkbox = document.createElement('input');
@@ -85,29 +84,25 @@ function renderEmailRows(emails, mailboxName, onEmailSelected) {
         row.appendChild(fromCell);
         row.appendChild(subjectCell);
 
-        // Add delete button
         const deleteCell = document.createElement('td');
         const deleteButton = document.createElement('button');
         deleteButton.textContent = '✖';
         deleteButton.className = 'delete-email';
         deleteButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent row click
+            e.stopPropagation();
             deleteEmail(mailboxName, email.id, row);
         });
         deleteCell.appendChild(deleteButton);
         row.appendChild(deleteCell);
 
         row.addEventListener('click', () => {
-            // Clear selection from all rows
             document.querySelectorAll('#email-list tbody tr').forEach(r => {
                 r.classList.remove('selected');
             });
-            // Mark clicked row as selected
             row.classList.add('selected');
             onEmailSelected(mailboxName, email.id);
         });
 
-        // Also mark as read when double-clicked
         row.addEventListener('dblclick', () => {
             markEmailAsRead(mailboxName, email.id);
         });
@@ -115,7 +110,6 @@ function renderEmailRows(emails, mailboxName, onEmailSelected) {
         emailListBody.appendChild(row);
     });
 
-    // Sync header checkbox state with rendered rows
     if (typeof updateSelectAllHeader === 'function') updateSelectAllHeader();
 }
 
@@ -136,13 +130,10 @@ async function markEmailAsRead(mailboxName, emailId) {
     try {
         const response = await fetch(`/api/mailboxes/${encodeURIComponent(mailboxName)}/emails/${emailId}/read`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
+            headers: { 'Content-Type': 'application/json' }
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-        // Update UI for the specific email row only
         const row = document.querySelector('tr[data-email-id="' + emailId + '"]');
         if (row) row.classList.remove('new-mail-row');
     } catch (error) {
@@ -151,9 +142,9 @@ async function markEmailAsRead(mailboxName, emailId) {
 }
 
 async function deleteEmail(mailboxName, emailId, rowElement) {
-    if (!confirm('本当にこのメールを削除しますか？')) {
-        return;
-    }
+    const confirmed = await showConfirm('本当にこのメールを削除しますか？');
+    if (!confirmed) return;
+
     try {
         const response = await fetch(`/api/mailboxes/${encodeURIComponent(mailboxName)}/emails/${emailId}`, {
             method: 'DELETE',
@@ -161,20 +152,18 @@ async function deleteEmail(mailboxName, emailId, rowElement) {
         if (!response.ok)
             throw new Error(`HTTP error! status: ${response.status}`);
 
-        // Remove the row from UI
         rowElement.remove();
-        // Also remove from client-side allEmails so filters won't re-show it
         if (typeof allEmails !== 'undefined' && Array.isArray(allEmails))
             allEmails = allEmails.filter(email => String(email.id) !== String(emailId));
         if (typeof updateSelectAllHeader === 'function') updateSelectAllHeader();
         if (typeof updateBatchDeleteButton === 'function') updateBatchDeleteButton();
+        if (typeof showToast === 'function') showToast('メールを削除しました', 'success');
     } catch (error) {
         console.error(`Failed to delete email ${emailId}:`, error);
-        alert('メールの削除に失敗しました。');
+        if (typeof showToast === 'function') showToast('メールの削除に失敗しました。', 'error');
     }
 }
 
-// Update the header select-all checkbox state based on visible row checkboxes
 function updateSelectAllHeader() {
     const headerCb = document.getElementById('select-all-checkbox');
     if (!headerCb) return;
@@ -197,7 +186,6 @@ function updateSelectAllHeader() {
     }
 }
 
-// Attach handler for header select-all checkbox
 document.addEventListener('DOMContentLoaded', () => {
     const headerCb = document.getElementById('select-all-checkbox');
     if (!headerCb) return;

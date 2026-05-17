@@ -7,11 +7,17 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <header id="app-header">
+        <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <polyline points="2,4 12,13 22,4"/>
+        </svg>
+        Mbox Viewer
+    </header>
     <div id="app-container">
         <div id="folders-pane" class="pane">
             <ul id="folder-list"></ul>
         </div>
-        <!-- Resizer between folders pane and right container -->
         <div id="pane-resizer" aria-hidden="true"></div>
         <div id="right-container">
             <div id="emails-pane" class="pane">
@@ -40,12 +46,30 @@
                     </table>
                 </div>
             </div>
-            <!-- Vertical resizer between email list and content pane -->
             <div id="vertical-resizer" aria-hidden="true"></div>
             <div id="content-pane" class="pane">
                 <div id="email-content">
                     <p>Select an email to view its content.</p>
                 </div>
+            </div>
+        </div>
+    </div>
+    <footer id="app-status-bar">
+        <span class="status-left">
+            <span id="status-mailbox">—</span>
+            <span id="status-count">—</span>
+        </span>
+        <span class="status-right">
+            <span id="status-selected">—</span>
+        </span>
+    </footer>
+    <div id="toast-container"></div>
+    <div id="confirm-modal-overlay">
+        <div id="confirm-modal">
+            <p id="confirm-modal-message"></p>
+            <div class="confirm-btns">
+                <button id="confirm-cancel-btn">キャンセル</button>
+                <button id="confirm-ok-btn" class="confirm-primary">削除</button>
             </div>
         </div>
     </div>
