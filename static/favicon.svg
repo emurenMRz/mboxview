@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Background: accent color (#4f6ef7) rounded square -->
+  <rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill="#4f6ef7"/>
+  <!-- Envelope, scaled from the header icon (viewBox 0 0 24 24) by ~1.875 and centered -->
+  <g transform="translate(8 8) scale(1.875)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="4" width="20" height="16" rx="2"/>
+    <polyline points="2,4 12,13 22,4"/>
+  </g>
+</svg>
