@@ -59,6 +59,9 @@ fi
 if [ -n "${mboxviewd_port}" ]; then
     mboxviewd_flags="${mboxviewd_flags} -port ${mboxviewd_port}"
 fi
+if [ -n "${mboxviewd_addr}" ]; then
+    mboxviewd_flags="${mboxviewd_flags} -addr ${mboxviewd_addr}"
+fi
 if [ "${mboxviewd_edit}" = "YES" ]; then
     mboxviewd_flags="${mboxviewd_flags} -edit"
 fi
@@ -94,6 +97,7 @@ RC_CONF="/etc/rc.conf"
     grep -q '^mboxviewd_mbox_dir=' "$RC_CONF" || echo 'mboxviewd_mbox_dir="/usr/local/share/mail"'
     grep -q '^mboxviewd_log_file=' "$RC_CONF" || echo 'mboxviewd_log_file="/var/log/mboxviewd/mboxviewd.log"'
     grep -q '^mboxviewd_port=' "$RC_CONF" || echo 'mboxviewd_port="8080"'
+    grep -q '^mboxviewd_addr=' "$RC_CONF" || echo 'mboxviewd_addr=""'
     grep -q '^mboxviewd_edit=' "$RC_CONF" || echo 'mboxviewd_edit="NO"'
 } >> "$RC_CONF"
 

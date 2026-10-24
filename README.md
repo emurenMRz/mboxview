@@ -30,7 +30,10 @@ go build ./...
 go run ./cmd/mboxviewd --path /path/to/mboxdir
 ```
 
-デフォルトで :8080 をリッスンします。ブラウザで http://localhost:8080/ を開くと `static/index.html` が表示されます。
+デフォルトで 127.0.0.1:8080 をリッスンします。ブラウザで http://localhost:8080/ を開くと `static/index.html` が表示されます。
+
+- `-addr` で listen address（host:port）を指定できます。例: `-addr 0.0.0.0:8080` で全インターフェースからアクセス可能にします。
+- `-addr` を指定しない場合、`127.0.0.1:<port>` でリッスンします（`-port` のみ指定時はそのポート、未指定時は 8080）。
 
 ## API（エンドポイント）
 
